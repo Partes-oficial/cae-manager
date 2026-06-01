@@ -343,27 +343,7 @@ let empresas=JSON.parse(localStorage.getItem('cae5_emp')||'[]');
 let selIdx=null,editIdx=null,mW=[],mP=[],genW=[],genTipo=null,docGen='',tplEi=null,tplTi=null,tplC=null;
 function save(){localStorage.setItem('cae5_emp',JSON.stringify(empresas));}
 
-if(!empresas.length){
-  const hoy=new Date();
-  const d=(n)=>{const x=new Date(hoy);x.setDate(x.getDate()+n);return x.toISOString().slice(0,10);};
-  empresas=[
-    {id:1,nombre:'Construcciones García SL',cif:'B12345678',email:'garcia@construc.es',tel:'934 001 001',dir:'C/ Industria 45, Barcelona',
-     trabajadores:[
-       {nombre:'Juan García López',dni:'12345678A',cad:{epis:d(3),autmaq:d(60),informacion:d(1)}},
-       {nombre:'Pedro Martínez Ruiz',dni:'87654321B',cad:{epis:d(30),autmaq:d(-2),informacion:d(90)}}
-     ],
-     plataformas:[{nombre:'Ctaima',url:'https://app.ctaima.com',user:'garcia_sl',pass:'Ctaima2024!'}],
-     plantillas:{epis:null,autmaq:null,informacion:null}},
-    {id:2,nombre:'Reformas Sánchez CB',cif:'B87654321',email:'info@reformas-sanchez.com',tel:'934 002 002',dir:'Av. Diagonal 120, Barcelona',
-     trabajadores:[
-       {nombre:'Carlos Sánchez Gil',dni:'11223344C',cad:{epis:d(120),autmaq:d(45),informacion:d(4)}},
-       {nombre:'Luis Fernández Mora',dni:'44332211D',cad:{epis:null,autmaq:null,informacion:null}}
-     ],
-     plataformas:[{nombre:'Prevent',url:'https://preventsis.com/acceso',user:'sanchez_cb',pass:'Prev2024!'}],
-     plantillas:{epis:null,autmaq:null,informacion:null}},
-  ];
-  save();
-}
+// Sin datos de demo — arranca vacío
 empresas.forEach(e=>{
   if(!e.plantillas)e.plantillas={epis:null,autmaq:null,informacion:null};
   (e.trabajadores||[]).forEach(w=>{if(!w.cad)w.cad={epis:null,autmaq:null,informacion:null};});
