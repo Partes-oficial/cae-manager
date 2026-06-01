@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CAE Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{--bg:#0d0f14;--bg2:#13161d;--bg3:#1a1e27;--bg4:#222739;--border:#2a2f3d;--border2:#363d52;--text:#e8eaf0;--text2:#8b92a8;--text3:#555d75;--accent:#4f8ef7;--accent2:#2d5fc4;--aglow:rgba(79,142,247,.15);--green:#2eb87a;--gbg:rgba(46,184,122,.1);--amber:#f0a030;--ambg:rgba(240,160,48,.12);--red:#e05555;--rbg:rgba(224,85,85,.1);--r:10px;--rlg:16px;--font:'DM Sans',sans-serif;--mono:'DM Mono',monospace;--shadow:0 4px 24px rgba(0,0,0,.4)}
+*{box-sizing:border-box;margin:0;padding:0}html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;line-height:1.5}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+/* LOGIN */
+#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;position:relative;overflow:hidden}
+#login-screen::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 600px 400px at 50% 40%,rgba(79,142,247,.06),transparent)}
+.login-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rlg);padding:40px 44px;width:380px;max-width:95vw;position:relative;z-index:1}
+.login-logo{display:flex;align-items:center;gap:10px;margin-bottom:32px}
+.logo-icon{width:42px;height:42px;background:var(--accent);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff}
+.logo-text{font-size:20px;font-weight:600;letter-spacing:-.3px}.logo-sub{font-size:11px;color:var(--text2);letter-spacing:.5px;text-transform:uppercase;margin-top:1px}
+/* FORM */
+.field{margin-bottom:14px}.field label{display:block;font-size:11px;font-weight:600;color:var(--text3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px}
+.field input,.field select,.field textarea{width:100%;padding:9px 13px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:var(--font);font-size:13px;outline:none;transition:border-color .2s,box-shadow .2s}
+.field input:focus,.field select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--aglow)}.field select option{background:var(--bg3)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+/* BUTTONS */
+.btn{cursor:pointer;font-family:var(--font);font-size:13px;font-weight:500;padding:9px 16px;border-radius:var(--r);border:1px solid var(--border);background:transparent;color:var(--text);transition:all .15s;display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
+.btn:hover{background:var(--bg3);border-color:var(--border2)}.btn:active{transform:scale(.98)}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:#fff}.btn-primary:hover{background:var(--accent2);border-color:var(--accent2)}
+.btn-success{background:var(--green);border-color:var(--green);color:#fff}.btn-success:hover{background:#259962}
+.btn-amber{background:var(--amber);border-color:var(--amber);color:#000}.btn-amber:hover{background:#d48a20}
+.btn-full{width:100%;justify-content:center}.btn-sm{padding:5px 11px;font-size:12px}
+/* APP */
+#app{display:none;height:100vh;flex-direction:column}
+.topbar{height:54px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:12px;flex-shrink:0}
+.topbar-logo{display:flex;align-items:center;gap:8px;font-weight:600;font-size:15px;letter-spacing:-.2px}
+.tb-li{width:28px;height:28px;background:var(--accent);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff}
+.sep{width:1px;height:20px;background:var(--border)}
+.nav-tabs{display:flex;gap:2px}
+.nav-btn{padding:6px 13px;border-radius:8px;border:none;background:transparent;color:var(--text2);font-family:var(--font);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:6px}
+.nav-btn:hover{background:var(--bg3);color:var(--text)}.nav-btn.active{background:var(--bg4);color:var(--text)}
+.nav-btn .alert-badge{background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:2px}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.user-pill{display:flex;align-items:center;gap:6px;padding:4px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:20px;font-size:12px;color:var(--text2)}
+.app-body{flex:1;overflow:hidden;display:flex}
+/* SIDEBAR */
+.sidebar{width:270px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.sidebar-header{padding:14px;border-bottom:1px solid var(--border)}
+.sidebar-search{position:relative}.sidebar-search input{padding-left:32px;font-size:12px}
+.sidebar-search i{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:14px;pointer-events:none}
+.emp-list{flex:1;overflow-y:auto;padding:8px}
+.emp-item{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:9px;cursor:pointer;transition:background .15s;margin-bottom:2px}
+.emp-item:hover{background:var(--bg3)}.emp-item.active{background:var(--bg4)}
+.emp-avatar{width:35px;height:35px;border-radius:8px;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:11px;color:var(--accent);font-family:var(--mono);flex-shrink:0}
+.emp-item.active .emp-avatar{background:var(--accent);color:#fff}
+.emp-name{font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.emp-cif{font-size:10px;color:var(--text3);font-family:var(--mono)}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.dot-ok{background:var(--green)}.dot-warn{background:var(--amber)}.dot-miss{background:var(--red)}.dot-none{background:var(--border2)}
+.sidebar-footer{padding:12px;border-top:1px solid var(--border)}
+/* MAIN */
+.main{flex:1;overflow-y:auto;padding:24px}
+.panel{display:none}.panel.active{display:block}
+.ph{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:22px}
+.ph-title{font-size:19px;font-weight:600;letter-spacing:-.3px}.ph-sub{font-size:13px;color:var(--text2);margin-top:3px}
+.no-sel{display:flex;flex-direction:column;align-items:center;justify-content:center;height:55vh;color:var(--text3);text-align:center;gap:10px}
+.no-sel i{font-size:44px}.no-sel p{font-size:15px;color:var(--text2)}.no-sel span{font-size:13px}
+/* CARDS */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rlg);padding:20px;margin-bottom:16px}
+.card-title{font-size:13px;font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.card-title i{font-size:16px;color:var(--accent)}
+.sec-label{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;margin-top:18px}
+.sec-label:first-child{margin-top:0}
+/* CONTACT BAR */
+.contact-bar{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);margin-bottom:16px;flex-wrap:wrap}
+.contact-item{display:flex;align-items:center;gap:7px;font-size:13px}
+.contact-item i{font-size:15px;color:var(--accent)}
+.contact-item a{color:var(--text);text-decoration:none}.contact-item a:hover{color:var(--accent)}
+.contact-btn{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:500;border:1px solid var(--border);background:transparent;cursor:pointer;color:var(--text);display:flex;align-items:center;gap:5px;transition:all .15s}
+.contact-btn:hover{background:var(--bg4);border-color:var(--border2)}
+.contact-btn.call{border-color:rgba(46,184,122,.4);color:var(--green)}.contact-btn.call:hover{background:var(--gbg)}
+.contact-btn.mail{border-color:rgba(79,142,247,.4);color:var(--accent)}.contact-btn.mail:hover{background:var(--aglow)}
+/* ALERT BANNER */
+.alert-banner{background:var(--ambg);border:1px solid rgba(240,160,48,.35);border-radius:var(--r);padding:12px 16px;margin-bottom:16px}
+.alert-banner-title{font-size:12px;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.alert-row{display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid rgba(240,160,48,.15);font-size:12px}
+.alert-row:last-child{border:none}
+.alert-row-name{font-weight:500;flex:1}
+.alert-row-doc{color:var(--text2);width:160px}
+.alert-row-days{font-weight:600;color:var(--amber);width:80px;text-align:right}
+.alert-row-days.expired{color:var(--red)}
+.alert-row-btn{margin-left:8px}
+/* DOC SLOTS */
+.doc-slots{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.doc-slot{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:16px;text-align:center;transition:border-color .2s}
+.doc-slot.has-tpl{border-color:rgba(46,184,122,.5)}.doc-slot.no-tpl{border-style:dashed}
+.slot-icon{font-size:22px;margin-bottom:8px;color:var(--text3)}.doc-slot.has-tpl .slot-icon{color:var(--green)}
+.slot-name{font-size:12px;font-weight:600;margin-bottom:4px}
+.slot-status{font-size:11px;color:var(--text3)}.doc-slot.has-tpl .slot-status{color:var(--green)}
+.slot-actions{display:flex;gap:5px;justify-content:center;margin-top:10px}
+/* WORKERS */
+.worker-list{display:flex;flex-direction:column;gap:8px}
+.worker-item{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px 14px}
+.worker-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.w-avatar{width:32px;height:32px;border-radius:8px;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:var(--text2);flex-shrink:0}
+.w-name{font-size:13px;font-weight:500;flex:1}.w-dni{font-size:11px;color:var(--text3);font-family:var(--mono)}
+.worker-docs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.wdoc{background:var(--bg4);border-radius:7px;padding:7px 8px;text-align:center}
+.wdoc-name{font-size:10px;font-weight:600;color:var(--text2);margin-bottom:3px}
+.wdoc-date{font-size:11px;font-family:var(--mono)}
+.wdoc-date.ok{color:var(--green)}.wdoc-date.warn{color:var(--amber)}.wdoc-date.expired{color:var(--red)}.wdoc-date.none{color:var(--text3)}
+/* PLATAFORMAS */
+.plat-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;cursor:pointer;transition:border-color .15s}
+.plat-item:hover{border-color:var(--border2)}
+.plat-globe{width:32px;height:32px;border-radius:8px;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--accent);flex-shrink:0}
+.plat-name{font-size:13px;font-weight:500}.plat-url{font-size:11px;color:var(--accent);font-family:var(--mono)}
+.pass-row{display:flex;align-items:center;gap:4px;margin-top:2px}.pass-dots{font-size:11px;color:var(--text3);font-family:var(--mono);flex:1}
+.rev-btn{background:none;border:none;cursor:pointer;color:var(--text3);padding:1px 4px;border-radius:4px;font-size:12px;transition:color .15s}.rev-btn:hover{color:var(--text)}
+/* GENERAR */
+.gen-doc-sel{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.doc-type-btn{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:16px 10px;text-align:center;cursor:pointer;transition:all .2s}
+.doc-type-btn:hover{border-color:var(--border2)}.doc-type-btn.selected{border-color:var(--accent);background:var(--aglow)}
+.doc-type-btn i{font-size:22px;color:var(--text3);display:block;margin-bottom:7px}.doc-type-btn.selected i{color:var(--accent)}
+.doc-type-btn span{font-size:12px;font-weight:600}.doc-type-btn.no-tpl{opacity:.45;cursor:not-allowed}
+.doc-preview{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:20px;font-family:var(--mono);font-size:11px;line-height:1.9;white-space:pre-wrap;color:var(--text);max-height:380px;overflow-y:auto;margin-top:14px}
+.spinner{display:inline-block;width:13px;height:13px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;vertical-align:-2px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.smsg{padding:9px 13px;border-radius:var(--r);font-size:13px;margin:10px 0;display:flex;align-items:center;gap:8px}
+.si{background:rgba(79,142,247,.1);border:1px solid rgba(79,142,247,.3);color:#7db2ff}
+.so{background:var(--gbg);border:1px solid rgba(46,184,122,.4);color:var(--green)}
+.se{background:var(--rbg);border:1px solid rgba(224,85,85,.4);color:var(--red)}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+/* MODAL */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:1000;align-items:center;justify-content:center;backdrop-filter:blur(3px)}
+.overlay.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rlg);padding:26px;width:580px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow)}
+.mhdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.mtitle{font-size:16px;font-weight:600}
+.mclose{background:none;border:none;color:var(--text2);cursor:pointer;font-size:22px;line-height:1;padding:0}.mclose:hover{color:var(--text)}
+.mfooter{display:flex;gap:8px;justify-content:flex-end;margin-top:18px;padding-top:14px;border-top:1px solid var(--border)}
+/* UPLOAD */
+.upload-zone{border:1.5px dashed var(--border2);border-radius:var(--r);padding:22px;text-align:center;cursor:pointer;position:relative;transition:all .2s}
+.upload-zone:hover{border-color:var(--accent);background:var(--aglow)}.upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.upload-text{font-size:13px;color:var(--text2);margin-top:6px}.upload-text strong{color:var(--text)}
+/* CHIP */
+.chip{display:inline-flex;align-items:center;gap:5px;background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:3px 10px;font-size:12px}
+.chip .rm{cursor:pointer;color:var(--text3);font-size:15px;line-height:1;transition:color .15s}.chip .rm:hover{color:var(--red)}
+.empty{text-align:center;padding:24px;color:var(--text3);font-size:13px}.empty i{font-size:28px;display:block;margin-bottom:8px}
+.lerr{background:var(--rbg);border:1px solid var(--red);color:var(--red);padding:8px 12px;border-radius:var(--r);font-size:13px;margin-bottom:14px;display:none}
+/* INLINE INPUT */
+.inline-inp{padding:7px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:var(--font);font-size:13px;outline:none;transition:border-color .2s}
+.inline-inp:focus{border-color:var(--accent)}
+@media(max-width:768px){.sidebar{display:none}.grid2{grid-template-columns:1fr}.grid3{grid-template-columns:1fr}.doc-slots{grid-template-columns:1fr}.gen-doc-sel{grid-template-columns:1fr}.worker-docs{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="logo-icon"><i class="ti ti-building-factory-2"></i></div>
+      <div><div class="logo-text">CAE Manager</div><div class="logo-sub">Coordinación de Actividades Empresariales</div></div>
+    </div>
+    <div id="lerr" class="lerr">Usuario o contraseña incorrectos</div>
+    <div class="field"><label>Usuario</label><input type="text" id="lu" value="admin"></div>
+    <div class="field"><label>Contraseña</label><input type="password" id="lp" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <button class="btn btn-primary btn-full" style="margin-top:4px" onclick="doLogin()"><i class="ti ti-login"></i> Entrar</button>
+    <p style="font-size:11px;color:var(--text3);text-align:center;margin-top:14px">Demo: admin / admin123</p>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-logo"><div class="tb-li"><i class="ti ti-building-factory-2"></i></div> CAE Manager</div>
+    <div class="sep"></div>
+    <div class="nav-tabs">
+      <button class="nav-btn active" onclick="showPanel('empresas',this)"><i class="ti ti-building-community"></i> Empresas</button>
+      <button class="nav-btn" onclick="showPanel('alertas',this)" id="nav-alertas"><i class="ti ti-bell"></i> Alertas</button>
+      <button class="nav-btn" onclick="showPanel('generar',this)"><i class="ti ti-file-plus"></i> Generar documento</button>
+    </div>
+    <div class="topbar-right">
+      <div class="user-pill"><i class="ti ti-shield-check" style="font-size:12px;color:var(--green)"></i> Superadmin</div>
+      <button class="btn btn-sm" onclick="doLogout()"><i class="ti ti-logout"></i></button>
+    </div>
+  </div>
+  <div class="app-body">
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-search"><i class="ti ti-search"></i><input type="text" placeholder="Buscar empresa..." oninput="renderSidebar(this.value)"></div>
+      </div>
+      <div class="emp-list" id="emp-list"></div>
+      <div class="sidebar-footer"><button class="btn btn-primary btn-full btn-sm" onclick="openModalEmp()"><i class="ti ti-plus"></i> Nueva empresa</button></div>
+    </div>
+    <!-- MAIN -->
+    <div class="main">
+
+      <!-- PANEL EMPRESAS -->
+      <div id="panel-empresas" class="panel active">
+        <div id="emp-main"><div class="no-sel"><i class="ti ti-building-community"></i><p>Selecciona una empresa</p><span>Elige del panel izquierdo para ver su detalle</span></div></div>
+      </div>
+
+      <!-- PANEL ALERTAS -->
+      <div id="panel-alertas" class="panel">
+        <div class="ph"><div><div class="ph-title">Alertas de caducidad</div><div class="ph-sub">Documentos que caducan en los próximos 5 días o ya caducados</div></div></div>
+        <div id="alertas-content"></div>
+      </div>
+
+      <!-- PANEL GENERAR -->
+      <div id="panel-generar" class="panel">
+        <div class="ph"><div><div class="ph-title">Generar documento</div><div class="ph-sub">Selecciona empresa, tipo y trabajador — la IA lo rellena listo para firmar</div></div></div>
+        <div class="card">
+          <div class="card-title"><i class="ti ti-building"></i> 1 · Empresa</div>
+          <div class="field" style="margin:0"><select id="gen-emp" onchange="onGenEmpChange()"><option value="">— Seleccionar empresa —</option></select></div>
+        </div>
+        <div class="card" id="gen-step2" style="display:none">
+          <div class="card-title"><i class="ti ti-file-text"></i> 2 · Tipo de documento</div>
+          <div class="gen-doc-sel" id="gen-doc-types"></div>
+        </div>
+        <div class="card" id="gen-step3" style="display:none">
+          <div class="card-title"><i class="ti ti-users"></i> 3 · Trabajador(es) y datos</div>
+          <div class="field"><label>Trabajadores de esta empresa</label><select id="gen-wsel" onchange="addGenWorker()"><option value="">— Añadir —</option></select></div>
+          <div id="gen-wchips" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px"></div>
+          <div class="grid2">
+            <div class="field"><label>Fecha del documento</label><input type="date" id="gen-fecha"></div>
+            <div class="field"><label>Obra / Proyecto</label><input type="text" id="gen-obra" placeholder="Nombre o código de obra"></div>
+          </div>
+          <div id="gen-status"></div>
+          <button class="btn btn-primary" onclick="generarDoc()"><i class="ti ti-wand"></i> Generar documento</button>
+        </div>
+        <div id="gen-result" style="display:none">
+          <div class="card">
+            <div class="card-title"><i class="ti ti-file-check"></i> Documento listo — imprime, firma y sube</div>
+            <pre id="doc-preview" class="doc-preview"></pre>
+            <div class="btn-row">
+              <button class="btn btn-primary" onclick="imprimirDoc()"><i class="ti ti-printer"></i> Imprimir</button>
+              <button class="btn btn-success" onclick="descargarPDF()"><i class="ti ti-download"></i> Descargar PDF</button>
+              <button class="btn" onclick="abrirModalEmail()"><i class="ti ti-mail"></i> Enviar por email</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EMPRESA -->
+<div class="overlay" id="modal-emp">
+  <div class="modal">
+    <div class="mhdr"><div class="mtitle" id="memp-title">Nueva empresa</div><button class="mclose" onclick="closeOv('modal-emp')">×</button></div>
+    <div class="grid2">
+      <div class="field"><label>Nombre *</label><input type="text" id="me-n" placeholder="Construcciones García SL"></div>
+      <div class="field"><label>CIF / NIF</label><input type="text" id="me-c" placeholder="B12345678"></div>
+    </div>
+    <div class="grid2">
+      <div class="field"><label>Email de contacto</label><input type="email" id="me-e" placeholder="admin@empresa.com"></div>
+      <div class="field"><label>Teléfono de contacto</label><input type="tel" id="me-t" placeholder="600 000 000"></div>
+    </div>
+    <div class="field"><label>Dirección</label><input type="text" id="me-d" placeholder="Calle, número, ciudad"></div>
+
+    <div class="sec-label">Trabajadores de esta empresa</div>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:10px">Añade también las fechas de caducidad de sus documentos para recibir alertas 5 días antes.</p>
+    <div style="display:grid;grid-template-columns:1fr 110px auto;gap:8px;margin-bottom:6px;align-items:end">
+      <div class="field" style="margin:0"><label>Nombre completo</label><input type="text" id="me-wn" placeholder="Apellidos, Nombre"></div>
+      <div class="field" style="margin:0"><label>DNI / NIE</label><input type="text" id="me-wd" placeholder="12345678A"></div>
+      <button class="btn btn-sm btn-primary" onclick="addMW()" style="margin-top:18px"><i class="ti ti-plus"></i> Añadir</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
+      <div class="field" style="margin:0"><label>Cad. EPIS</label><input type="date" id="me-wcad-epis"></div>
+      <div class="field" style="margin:0"><label>Cad. Aut. Maquinaria</label><input type="date" id="me-wcad-autmaq"></div>
+      <div class="field" style="margin:0"><label>Cad. Información</label><input type="date" id="me-wcad-informacion"></div>
+    </div>
+    <div id="me-wlist" style="display:flex;flex-direction:column;gap:6px;margin-bottom:6px"></div>
+
+    <div class="sec-label">Plataformas CAE</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;margin-bottom:8px;align-items:end">
+      <div class="field" style="margin:0"><label>Nombre</label><input type="text" id="me-pn" placeholder="Ctaima"></div>
+      <div class="field" style="margin:0"><label>URL</label><input type="text" id="me-pu" placeholder="https://..."></div>
+      <div class="field" style="margin:0"><label>Usuario</label><input type="text" id="me-pus" placeholder="usuario"></div>
+      <button class="btn btn-sm btn-primary" onclick="addMP()" style="margin-top:18px"><i class="ti ti-plus"></i></button>
+    </div>
+    <div class="field"><label>Contraseña</label><input type="password" id="me-pp" placeholder="contraseña"></div>
+    <div id="me-plist"></div>
+    <div class="mfooter">
+      <button class="btn" onclick="closeOv('modal-emp')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarEmp()"><i class="ti ti-check"></i> Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PLANTILLA -->
+<div class="overlay" id="modal-tpl">
+  <div class="modal" style="width:520px">
+    <div class="mhdr"><div class="mtitle" id="tpl-title">Subir plantilla</div><button class="mclose" onclick="closeOv('modal-tpl')">×</button></div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:16px">Sube el documento original de la empresa (PDF, Word o imagen). La IA detecta los campos automáticamente.</p>
+    <div class="upload-zone"><input type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.webp" onchange="analizarTpl(event)"><i class="ti ti-cloud-upload" style="font-size:28px;color:var(--text3)"></i><p class="upload-text"><strong>Haz clic o arrastra el archivo</strong></p><p class="upload-text" style="margin-top:3px">PDF, Word, imagen — cualquier formato</p></div>
+    <div id="tpl-status"></div>
+    <div id="tpl-campos" style="display:none">
+      <div class="sec-label">Campos detectados — revisa y confirma</div>
+      <div id="tpl-clista"></div>
+      <div class="mfooter" style="border:none;padding:0;margin-top:12px">
+        <button class="btn" onclick="closeOv('modal-tpl')">Cancelar</button>
+        <button class="btn btn-primary" onclick="guardarTpl()"><i class="ti ti-device-floppy"></i> Guardar plantilla</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EMAIL -->
+<div class="overlay" id="modal-email">
+  <div class="modal" style="width:500px">
+    <div class="mhdr"><div class="mtitle">Enviar por email</div><button class="mclose" onclick="closeOv('modal-email')">×</button></div>
+    <div class="field"><label>Para</label><input type="email" id="em-to"></div>
+    <div class="field"><label>Asunto</label><input type="text" id="em-as"></div>
+    <div class="field"><label>Mensaje</label><textarea id="em-body" rows="6" style="resize:vertical;width:100%;padding:9px 13px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:var(--font);font-size:13px;outline:none"></textarea></div>
+    <div id="em-st"></div>
+    <div class="mfooter">
+      <button class="btn" onclick="closeOv('modal-email')">Cancelar</button>
+      <button class="btn btn-primary" onclick="copiarEmail()"><i class="ti ti-copy"></i> Copiar para enviar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const {jsPDF}=window.jspdf||{};
+const DOC_TIPOS=[
+  {id:'epis',label:'EPIS',icon:'ti-shield',desc:'Entrega equipos de protección'},
+  {id:'autmaq',label:'Aut. Maquinaria',icon:'ti-forklift',desc:'Autorización uso maquinaria'},
+  {id:'informacion',label:'Información',icon:'ti-info-circle',desc:'Información riesgos laborales'},
+];
+const ALERT_DAYS=5;
+let empresas=JSON.parse(localStorage.getItem('cae5_emp')||'[]');
+let selIdx=null,editIdx=null,mW=[],mP=[],genW=[],genTipo=null,docGen='',tplEi=null,tplTi=null,tplC=null;
+function save(){localStorage.setItem('cae5_emp',JSON.stringify(empresas));}
+
+if(!empresas.length){
+  const hoy=new Date();
+  const d=(n)=>{const x=new Date(hoy);x.setDate(x.getDate()+n);return x.toISOString().slice(0,10);};
+  empresas=[
+    {id:1,nombre:'Construcciones García SL',cif:'B12345678',email:'garcia@construc.es',tel:'934 001 001',dir:'C/ Industria 45, Barcelona',
+     trabajadores:[
+       {nombre:'Juan García López',dni:'12345678A',cad:{epis:d(3),autmaq:d(60),informacion:d(1)}},
+       {nombre:'Pedro Martínez Ruiz',dni:'87654321B',cad:{epis:d(30),autmaq:d(-2),informacion:d(90)}}
+     ],
+     plataformas:[{nombre:'Ctaima',url:'https://app.ctaima.com',user:'garcia_sl',pass:'Ctaima2024!'}],
+     plantillas:{epis:null,autmaq:null,informacion:null}},
+    {id:2,nombre:'Reformas Sánchez CB',cif:'B87654321',email:'info@reformas-sanchez.com',tel:'934 002 002',dir:'Av. Diagonal 120, Barcelona',
+     trabajadores:[
+       {nombre:'Carlos Sánchez Gil',dni:'11223344C',cad:{epis:d(120),autmaq:d(45),informacion:d(4)}},
+       {nombre:'Luis Fernández Mora',dni:'44332211D',cad:{epis:null,autmaq:null,informacion:null}}
+     ],
+     plataformas:[{nombre:'Prevent',url:'https://preventsis.com/acceso',user:'sanchez_cb',pass:'Prev2024!'}],
+     plantillas:{epis:null,autmaq:null,informacion:null}},
+  ];
+  save();
+}
+empresas.forEach(e=>{
+  if(!e.plantillas)e.plantillas={epis:null,autmaq:null,informacion:null};
+  (e.trabajadores||[]).forEach(w=>{if(!w.cad)w.cad={epis:null,autmaq:null,informacion:null};});
+});
+
+// ─── UTILS ────────────────────────────────────────────────
+function gi(n){return n.split(' ').filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join('');}
+function closeOv(id){document.getElementById(id).classList.remove('open');}
+function sSt(id,msg,t){const c=t==='i'?'si':t==='o'?'so':'se';document.getElementById(id).innerHTML=`<div class="smsg ${c}">${msg}</div>`;}
+function cpTxt(t){navigator.clipboard.writeText(t).catch(()=>{});}
+function openUrl(u){if(u&&u.startsWith('http'))window.open(u,'_blank');}
+
+// días hasta fecha (negativo = ya caducó)
+function diasHasta(dateStr){
+  if(!dateStr)return null;
+  const hoy=new Date();hoy.setHours(0,0,0,0);
+  const d=new Date(dateStr+'T00:00:00');
+  return Math.round((d-hoy)/(1000*60*60*24));
+}
+function fechaDisplay(dateStr){
+  if(!dateStr)return '—';
+  return new Date(dateStr+'T00:00:00').toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'numeric'});
+}
+function cadClass(dateStr){
+  const d=diasHasta(dateStr);
+  if(d===null)return 'none';
+  if(d<0)return 'expired';
+  if(d<=ALERT_DAYS)return 'warn';
+  return 'ok';
+}
+
+// ─── ALERTAS ─────────────────────────────────────────────
+function getAlertas(){
+  const alertas=[];
+  empresas.forEach((e,ei)=>{
+    (e.trabajadores||[]).forEach((w,wi)=>{
+      DOC_TIPOS.forEach(t=>{
+        const d=diasHasta((w.cad||{})[t.id]);
+        if(d!==null&&d<=ALERT_DAYS){
+          alertas.push({empresa:e.nombre,empIdx:ei,worker:w.nombre,dni:w.dni,tipo:t.label,tipoId:t.id,dias:d,empEmail:e.email});
+        }
+      });
+    });
+  });
+  return alertas.sort((a,b)=>a.dias-b.dias);
+}
+
+function updateAlertBadge(){
+  const n=getAlertas().length;
+  const nb=document.getElementById('nav-alertas');
+  const existing=nb.querySelector('.alert-badge');
+  if(existing)existing.remove();
+  if(n>0)nb.insertAdjacentHTML('beforeend',`<span class="alert-badge">${n}</span>`);
+}
+
+function renderAlertas(){
+  const al=getAlertas();
+  const el=document.getElementById('alertas-content');
+  if(!al.length){
+    el.innerHTML=`<div style="text-align:center;padding:48px;color:var(--text3)"><i class="ti ti-circle-check" style="font-size:44px;display:block;margin-bottom:12px;color:var(--green)"></i><p style="font-size:15px;color:var(--text)">Todo al día</p><span style="font-size:13px">No hay documentos que caduquen en los próximos ${ALERT_DAYS} días</span></div>`;
+    return;
+  }
+  el.innerHTML=`<div class="alert-banner">
+    <div class="alert-banner-title"><i class="ti ti-alert-triangle"></i> ${al.length} documento${al.length>1?'s':''} requieren atención</div>
+    ${al.map(a=>{
+      const cls=a.dias<0?'expired':'';
+      const diasTxt=a.dias<0?`Caducado hace ${Math.abs(a.dias)} día${Math.abs(a.dias)>1?'s':''}`:a.dias===0?'Caduca HOY':`Caduca en ${a.dias} día${a.dias>1?'s':''}`;
+      return `<div class="alert-row">
+        <div class="alert-row-name">${a.worker} <span style="font-size:11px;color:var(--text3);font-family:var(--mono)">${a.dni||''}</span></div>
+        <div style="font-size:11px;color:var(--text2)">${a.empresa}</div>
+        <div class="alert-row-doc">${a.tipo}</div>
+        <div class="alert-row-days ${cls}">${diasTxt}</div>
+        <div class="alert-row-btn"><button class="btn btn-sm btn-amber" onclick="irGenerarAlerta(${a.empIdx},'${a.tipoId}')"><i class="ti ti-wand"></i> Generar</button></div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+// ─── AUTH ─────────────────────────────────────────────────
+function doLogin(){
+  if(document.getElementById('lu').value==='admin'&&document.getElementById('lp').value==='admin123'){
+    document.getElementById('login-screen').style.display='none';
+    const a=document.getElementById('app');a.style.display='flex';a.style.flexDirection='column';
+    renderSidebar();poblarGen();updateAlertBadge();
+  }else document.getElementById('lerr').style.display='block';
+}
+function doLogout(){document.getElementById('app').style.display='none';document.getElementById('login-screen').style.display='flex';selIdx=null;}
+
+// ─── NAVIGATION ───────────────────────────────────────────
+function showPanel(id,btn){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('panel-'+id).classList.add('active');
+  if(btn)btn.classList.add('active');
+  if(id==='generar')poblarGen();
+  if(id==='alertas')renderAlertas();
+}
+
+// ─── SIDEBAR ─────────────────────────────────────────────
+function empStatus(e){const t=e.plantillas||{};const v=DOC_TIPOS.map(d=>t[d.id]?'ok':'miss');return v.every(x=>x==='ok')?'ok':v.some(x=>x==='ok')?'warn':'miss';}
+function renderSidebar(f=''){
+  const el=document.getElementById('emp-list');
+  const fl=empresas.filter(e=>e.nombre.toLowerCase().includes(f.toLowerCase()));
+  if(!fl.length){el.innerHTML='<div class="empty"><i class="ti ti-search-off"></i>Sin resultados</div>';return;}
+  el.innerHTML=fl.map(e=>{
+    const i=empresas.indexOf(e);
+    const s=empStatus(e);
+    const dc=s==='ok'?'dot-ok':s==='warn'?'dot-warn':'dot-miss';
+    const hasAlert=getAlertas().some(a=>a.empIdx===i);
+    return `<div class="emp-item${selIdx===i?' active':''}" onclick="selEmp(${i})">
+      <div class="emp-avatar">${gi(e.nombre)}</div>
+      <div style="flex:1;min-width:0"><div class="emp-name">${e.nombre}</div><div class="emp-cif">${e.cif||'—'}</div></div>
+      ${hasAlert?'<i class="ti ti-alert-triangle" style="font-size:12px;color:var(--amber)"></i>':''}
+      <div class="dot ${dc}"></div>
+    </div>`;
+  }).join('');
+}
+
+// ─── DETALLE EMPRESA ──────────────────────────────────────
+function selEmp(idx){selIdx=idx;renderSidebar();renderEmpDetail(idx);}
+function renderEmpDetail(idx){
+  const e=empresas[idx];
+  // alertas de esta empresa
+  const empAlertas=getAlertas().filter(a=>a.empIdx===idx);
+  const alertaHTML=empAlertas.length?`<div class="alert-banner" style="margin-bottom:16px">
+    <div class="alert-banner-title"><i class="ti ti-alert-triangle"></i> ${empAlertas.length} alerta${empAlertas.length>1?'s':''} en esta empresa</div>
+    ${empAlertas.map(a=>{const cls=a.dias<0?'expired':'';const diasTxt=a.dias<0?`Caducado hace ${Math.abs(a.dias)}d`:a.dias===0?'Hoy':`En ${a.dias}d`;return `<div class="alert-row"><div class="alert-row-name">${a.worker}</div><div class="alert-row-doc">${a.tipo}</div><div class="alert-row-days ${cls}">${diasTxt}</div><div class="alert-row-btn"><button class="btn btn-sm btn-amber" onclick="irGenerarAlerta(${idx},'${a.tipoId}')"><i class="ti ti-wand"></i> Generar</button></div></div>`;}).join('')}
+  </div>`:'';
+
+  const slotsHTML=DOC_TIPOS.map(t=>{const tpl=(e.plantillas||{})[t.id];const has=!!tpl;return `<div class="doc-slot ${has?'has-tpl':'no-tpl'}"><div class="slot-icon"><i class="ti ${t.icon}"></i></div><div class="slot-name">${t.label}</div><div class="slot-status">${has?'✓ Plantilla cargada':'Sin plantilla'}</div><div class="slot-actions"><button class="btn btn-sm ${has?'':'btn-primary'}" onclick="abrirTpl(${idx},'${t.id}')"><i class="ti ${has?'ti-refresh':'ti-upload'}"></i> ${has?'Cambiar':'Subir'}</button>${has?`<button class="btn btn-sm" style="color:var(--red)" onclick="elimTpl(${idx},'${t.id}')"><i class="ti ti-trash"></i></button>`:''}</div></div>`;}).join('');
+
+  const workersHTML=(e.trabajadores||[]).length?(e.trabajadores||[]).map(w=>{
+    const cad=w.cad||{};
+    const docsHTML=DOC_TIPOS.map(t=>{
+      const cls=cadClass(cad[t.id]);
+      const df=fechaDisplay(cad[t.id]);
+      const d=diasHasta(cad[t.id]);
+      const daysLabel=d===null?'Sin fecha':d<0?`Caducado hace ${Math.abs(d)}d`:d===0?'Caduca hoy':`${d}d`;
+      return `<div class="wdoc"><div class="wdoc-name">${t.label}</div><div class="wdoc-date ${cls}">${df}</div><div style="font-size:10px;color:var(--text3);margin-top:2px">${daysLabel}</div></div>`;
+    }).join('');
+    return `<div class="worker-item"><div class="worker-header"><div class="w-avatar">${gi(w.nombre)}</div><div class="w-name">${w.nombre}</div><div class="w-dni">${w.dni||'—'}</div></div><div class="worker-docs">${docsHTML}</div></div>`;
+  }).join(''):'<div class="empty"><i class="ti ti-users-off"></i>Sin trabajadores registrados</div>';
+
+  const platsHTML=(e.plataformas||[]).length?(e.plataformas||[]).map((p,pi)=>`<div class="plat-item" onclick="openUrl('${p.url}')"><div class="plat-globe"><i class="ti ti-world"></i></div><div style="flex:1"><div class="plat-name">${p.nombre}</div><div class="plat-url">${p.url}</div><div class="pass-row"><span class="pass-dots" id="pd-${idx}-${pi}">${'•'.repeat(10)}</span><button class="rev-btn" onclick="event.stopPropagation();toggleP(${idx},${pi},'${p.pass.replace(/'/g,"\\'")}')"><i class="ti ti-eye"></i></button><button class="rev-btn" onclick="event.stopPropagation();cpTxt('${p.pass.replace(/'/g,"\\'")}')"><i class="ti ti-copy"></i></button></div></div><i class="ti ti-external-link" style="font-size:13px;color:var(--text3)"></i></div>`).join(''):'<div class="empty"><i class="ti ti-link-off"></i>Sin plataformas</div>';
+
+  document.getElementById('emp-main').innerHTML=`
+    <div class="ph">
+      <div><div class="ph-title">${e.nombre}</div><div class="ph-sub">${e.cif||''} · ${e.dir||''}</div></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-sm" onclick="openModalEmp(${idx})"><i class="ti ti-edit"></i> Editar</button>
+        <button class="btn btn-sm btn-primary" onclick="irGenerar(${idx})"><i class="ti ti-file-plus"></i> Generar doc</button>
+      </div>
+    </div>
+    ${alertaHTML}
+    <div class="contact-bar">
+      ${e.email?`<div class="contact-item"><i class="ti ti-mail"></i><a href="mailto:${e.email}">${e.email}</a></div><button class="contact-btn mail" onclick="window.location='mailto:${e.email}'"><i class="ti ti-mail"></i> Enviar email</button>`:''}
+      ${e.tel?`<div class="contact-item" style="margin-left:${e.email?'12px':'0'}"><i class="ti ti-phone"></i><a href="tel:${e.tel.replace(/\s/g,'')}">${e.tel}</a></div><button class="contact-btn call" onclick="window.location='tel:${e.tel.replace(/\s/g,'')}'"><i class="ti ti-phone"></i> Llamar</button>`:''}
+      ${!e.email&&!e.tel?'<span style="font-size:12px;color:var(--text3)">Sin datos de contacto — edita la empresa para añadirlos</span>':''}
+    </div>
+    <div class="card"><div class="card-title"><i class="ti ti-file-description"></i> Plantillas de documentos</div><p style="font-size:12px;color:var(--text2);margin-bottom:14px">Sube una vez el documento original de esta empresa — la IA lo rellena cada vez.</p><div class="doc-slots">${slotsHTML}</div></div>
+    <div class="card"><div class="card-title"><i class="ti ti-users"></i> Trabajadores y caducidades</div><div class="worker-list">${workersHTML}</div></div>
+    <div class="card"><div class="card-title"><i class="ti ti-link"></i> Plataformas CAE</div>${platsHTML}</div>`;
+}
+function toggleP(i,pi,pass){const el=document.getElementById('pd-'+i+'-'+pi);if(!el)return;el.textContent=el.textContent.includes('•')?pass:'•'.repeat(10);}
+
+// ─── MODAL EMPRESA ────────────────────────────────────────
+function openModalEmp(idx=null){
+  editIdx=idx;
+  mW=idx!==null?JSON.parse(JSON.stringify(empresas[idx].trabajadores||[])):[];
+  mP=idx!==null?JSON.parse(JSON.stringify(empresas[idx].plataformas||[])):[];
+  const e=idx!==null?empresas[idx]:{};
+  document.getElementById('memp-title').textContent=idx!==null?'Editar empresa':'Nueva empresa';
+  document.getElementById('me-n').value=e.nombre||'';
+  document.getElementById('me-c').value=e.cif||'';
+  document.getElementById('me-e').value=e.email||'';
+  document.getElementById('me-t').value=e.tel||'';
+  document.getElementById('me-d').value=e.dir||'';
+  ['me-wn','me-wd','me-wcad-epis','me-wcad-autmaq','me-wcad-informacion','me-pn','me-pu','me-pus','me-pp'].forEach(id=>document.getElementById(id).value='');
+  renderMW();renderMP();
+  document.getElementById('modal-emp').classList.add('open');
+}
+function addMW(){
+  const n=document.getElementById('me-wn').value.trim();
+  const d=document.getElementById('me-wd').value.trim();
+  if(!n)return;
+  const cad={epis:document.getElementById('me-wcad-epis').value||null,autmaq:document.getElementById('me-wcad-autmaq').value||null,informacion:document.getElementById('me-wcad-informacion').value||null};
+  mW.push({nombre:n,dni:d,cad});
+  ['me-wn','me-wd','me-wcad-epis','me-wcad-autmaq','me-wcad-informacion'].forEach(id=>document.getElementById(id).value='');
+  renderMW();
+}
+function renderMW(){
+  document.getElementById('me-wlist').innerHTML=mW.map((w,i)=>{
+    const cad=w.cad||{};
+    return `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 12px;display:flex;align-items:center;gap:10px">
+      <div style="flex:1"><div style="font-size:13px;font-weight:500">${w.nombre}</div><div style="font-size:11px;color:var(--text3);font-family:var(--mono)">${w.dni||'—'}</div></div>
+      <div style="display:flex;gap:8px;font-size:11px;color:var(--text2)">
+        ${DOC_TIPOS.map(t=>`<span>${t.label.split(' ')[0]}: <b style="color:${cadClass(cad[t.id])==='ok'?'var(--green)':cadClass(cad[t.id])==='warn'?'var(--amber)':cadClass(cad[t.id])==='expired'?'var(--red)':'var(--text3)'}">${fechaDisplay(cad[t.id])}</b></span>`).join('')}
+      </div>
+      <span style="cursor:pointer;color:var(--text3);font-size:18px;line-height:1" onclick="mW.splice(${i},1);renderMW()">×</span>
+    </div>`;
+  }).join('');
+}
+function addMP(){const n=document.getElementById('me-pn').value.trim();const u=document.getElementById('me-pu').value.trim();const us=document.getElementById('me-pus').value.trim();const pw=document.getElementById('me-pp').value;if(!n)return;mP.push({nombre:n,url:u,user:us,pass:pw});['me-pn','me-pu','me-pus','me-pp'].forEach(id=>document.getElementById(id).value='');renderMP();}
+function renderMP(){document.getElementById('me-plist').innerHTML=mP.map((p,i)=>`<div class="plat-item" style="cursor:default"><div class="plat-globe"><i class="ti ti-world"></i></div><div style="flex:1"><div class="plat-name">${p.nombre}</div><div class="plat-url">${p.url}</div></div><span style="cursor:pointer;color:var(--text3);font-size:18px" onclick="mP.splice(${i},1);renderMP()">×</span></div>`).join('');}
+function guardarEmp(){
+  const n=document.getElementById('me-n').value.trim();if(!n){alert('El nombre es obligatorio');return;}
+  const obj={id:editIdx!==null?empresas[editIdx].id:Date.now(),nombre:n,cif:document.getElementById('me-c').value.trim(),email:document.getElementById('me-e').value.trim(),tel:document.getElementById('me-t').value.trim(),dir:document.getElementById('me-d').value.trim(),trabajadores:[...mW],plataformas:[...mP],plantillas:editIdx!==null?empresas[editIdx].plantillas:{epis:null,autmaq:null,informacion:null}};
+  if(editIdx!==null)empresas[editIdx]=obj;else empresas.push(obj);
+  save();renderSidebar();poblarGen();updateAlertBadge();closeOv('modal-emp');
+  if(editIdx!==null&&selIdx===editIdx)renderEmpDetail(editIdx);
+  else if(editIdx===null)selEmp(empresas.length-1);
+}
+
+// ─── PLANTILLAS ───────────────────────────────────────────
+function abrirTpl(ei,ti){tplEi=ei;tplTi=ti;tplC=null;const t=DOC_TIPOS.find(x=>x.id===ti);document.getElementById('tpl-title').textContent=`Subir plantilla · ${t.label} · ${empresas[ei].nombre}`;document.getElementById('tpl-status').innerHTML='';document.getElementById('tpl-campos').style.display='none';document.getElementById('modal-tpl').classList.add('open');}
+async function analizarTpl(e){
+  const file=e.target.files[0];if(!file)return;
+  const t=DOC_TIPOS.find(x=>x.id===tplTi);
+  document.getElementById('tpl-status').innerHTML=`<div class="smsg si"><span class="spinner"></span> Analizando con IA...</div>`;
+  document.getElementById('tpl-campos').style.display='none';
+  const toB64=f=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(f);});
+  try{
+    const isImg=file.type.startsWith('image/'),isPDF=file.type==='application/pdf';
+    let messages;
+    const prompt=`Analiza este documento "${t.label}" CAE de construcción. Lista todos los campos a rellenar (nombre, DNI, fecha, empresa, maquinaria, EPIs, obra, etc.). Responde SOLO con JSON sin markdown:\n{"campos":[{"id":"campo_id","etiqueta":"Etiqueta visible","ejemplo":"valor ejemplo"}]}`;
+    if(isImg||isPDF){const b64=await toB64(file);const blk=isPDF?{type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}}:{type:'image',source:{type:'base64',media_type:file.type,data:b64}};messages=[{role:'user',content:[blk,{type:'text',text:prompt}]}];}
+    else{const txt=await file.text();messages=[{role:'user',content:`Documento "${t.label}" CAE:\n\n${txt.slice(0,3000)}\n\n${prompt}`}];}
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages})});
+    const data=await res.json();
+    const raw=data.content?.map(b=>b.text||'').join('').replace(/```json|```/g,'').trim();
+    const parsed=JSON.parse(raw);tplC=parsed.campos;
+    document.getElementById('tpl-clista').innerHTML=tplC.map(c=>`<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)"><span style="font-size:12px;color:var(--text2);width:140px;flex-shrink:0">${c.etiqueta}</span><input type="text" value="${c.ejemplo||''}" data-id="${c.id}" placeholder="${c.etiqueta}" style="flex:1;padding:5px 9px;background:var(--bg3);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:var(--font);font-size:12px;outline:none"></div>`).join('');
+    document.getElementById('tpl-campos').style.display='block';
+    document.getElementById('tpl-status').innerHTML=`<div class="smsg so">✓ ${tplC.length} campos detectados</div>`;
+  }catch(err){document.getElementById('tpl-status').innerHTML=`<div class="smsg se">Error: ${err.message}</div>`;}
+}
+function guardarTpl(){
+  if(!tplC)return;
+  const campos=Array.from(document.querySelectorAll('#tpl-clista input[data-id]')).map(inp=>({id:inp.dataset.id,etiqueta:inp.placeholder,ejemplo:inp.value}));
+  if(!empresas[tplEi].plantillas)empresas[tplEi].plantillas={};
+  empresas[tplEi].plantillas[tplTi]={campos,fecha:new Date().toLocaleDateString('es-ES')};
+  save();closeOv('modal-tpl');renderSidebar();if(selIdx===tplEi)renderEmpDetail(tplEi);
+}
+function elimTpl(ei,ti){const t=DOC_TIPOS.find(x=>x.id===ti);if(confirm(`¿Eliminar plantilla "${t.label}" de ${empresas[ei].nombre}?`)){empresas[ei].plantillas[ti]=null;save();renderSidebar();if(selIdx===ei)renderEmpDetail(ei);}}
+
+// ─── GENERAR DOCUMENTO ────────────────────────────────────
+function poblarGen(){const s=document.getElementById('gen-emp');s.innerHTML='<option value="">— Seleccionar empresa —</option>'+empresas.map((e,i)=>`<option value="${i}">${e.nombre}</option>`).join('');}
+function onGenEmpChange(){
+  const idx=document.getElementById('gen-emp').value;
+  document.getElementById('gen-step2').style.display='none';document.getElementById('gen-step3').style.display='none';document.getElementById('gen-result').style.display='none';
+  genW=[];genTipo=null;
+  if(idx==='')return;
+  const e=empresas[parseInt(idx)];
+  document.getElementById('gen-doc-types').innerHTML=DOC_TIPOS.map(t=>{const has=!!(e.plantillas||{})[t.id];return `<div class="doc-type-btn${!has?' no-tpl':''}" onclick="${has?'selGenTipo(\''+t.id+'\','+idx+')':''}" title="${has?t.desc:'Sin plantilla — sube primero la plantilla de esta empresa'}"><i class="ti ${t.icon}"></i><span>${t.label}</span><div style="font-size:10px;color:var(--text3);margin-top:5px">${has?'✓ Listo':'Sin plantilla'}</div></div>`;}).join('');
+  document.getElementById('gen-step2').style.display='block';
+}
+function selGenTipo(tipoId,empIdx){
+  genTipo=tipoId;
+  document.querySelectorAll('.doc-type-btn').forEach(b=>b.classList.remove('selected'));
+  event.currentTarget.classList.add('selected');
+  const e=empresas[parseInt(empIdx)];
+  const sel=document.getElementById('gen-wsel');
+  sel.innerHTML='<option value="">— Añadir —</option>'+(e.trabajadores||[]).map((w,i)=>`<option value="${i}">${w.nombre}${w.dni?' ('+w.dni+')':''}</option>`).join('');
+  genW=[];document.getElementById('gen-wchips').innerHTML='';
+  document.getElementById('gen-result').style.display='none';document.getElementById('gen-status').innerHTML='';
+  document.getElementById('gen-step3').style.display='block';
+}
+function addGenWorker(){
+  const ei=parseInt(document.getElementById('gen-emp').value);const wi=document.getElementById('gen-wsel').value;
+  if(wi==='')return;const w=empresas[ei].trabajadores[parseInt(wi)];
+  if(genW.find(x=>x.dni===w.dni&&x.nombre===w.nombre))return;
+  genW.push(w);document.getElementById('gen-wsel').value='';
+  renderGenChips();
+}
+function renderGenChips(){
+  document.getElementById('gen-wchips').innerHTML=genW.map((w,i)=>`<span class="chip">${w.nombre}${w.dni?' · '+w.dni:''}<span class="rm" onclick="genW.splice(${i},1);renderGenChips()">×</span></span>`).join('');
+}
+async function generarDoc(){
+  const ei=parseInt(document.getElementById('gen-emp').value);
+  if(!genTipo){sSt('gen-status','Selecciona el tipo de documento','e');return;}
+  if(!genW.length){sSt('gen-status','Añade al menos un trabajador','e');return;}
+  const e=empresas[ei];const t=DOC_TIPOS.find(x=>x.id===genTipo);
+  const tpl=(e.plantillas||{})[genTipo];
+  const fecha=document.getElementById('gen-fecha').value;
+  const obra=document.getElementById('gen-obra').value.trim();
+  const fechaFmt=fecha?new Date(fecha+'T12:00:00').toLocaleDateString('es-ES',{day:'2-digit',month:'long',year:'numeric'}):new Date().toLocaleDateString('es-ES',{day:'2-digit',month:'long',year:'numeric'});
+  const wStr=genW.map(w=>`  • ${w.nombre}  |  DNI/NIE: ${w.dni||'—'}`).join('\n');
+  const cStr=tpl?'\nCampos de la plantilla de esta empresa:\n'+tpl.campos.map(c=>`  - ${c.etiqueta}`).join('\n'):'';
+  sSt('gen-status','<span class="spinner"></span> Generando documento...','i');
+  document.getElementById('gen-result').style.display='none';
+  const pMap={epis:'ENTREGA DE EQUIPOS DE PROTECCIÓN INDIVIDUAL (EPIS)',autmaq:'AUTORIZACIÓN DE USO DE MAQUINARIA',informacion:'INFORMACIÓN DE RIESGOS LABORALES Y MEDIDAS PREVENTIVAS'};
+  const prompt=`Eres experto en documentación CAE para construcción en España. Genera el documento formal "${pMap[genTipo]}" con estos datos:\n\nEmpresa: ${e.nombre} — CIF: ${e.cif||'—'} — ${e.dir||''}\nFecha: ${fechaFmt}\nObra/Proyecto: ${obra||'—'}\nTrabajadores:\n${wStr}${cStr}\n\nINSTRUCCIONES:\n- Documento COMPLETO y FORMAL listo para imprimir y firmar\n- Todos los apartados habituales en obras de construcción en España\n- Líneas separadoras (════, ────) para estructurar\n- Al final: líneas de firma para TRABAJADOR y RESPONSABLE/EMPRESA con fecha y DNI\n- Solo el documento, sin notas externas`;
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
+    const data=await res.json();const text=data.content?.map(b=>b.text||'').join('');
+    if(!text)throw new Error('Sin respuesta');
+    docGen=text;document.getElementById('doc-preview').textContent=text;
+    document.getElementById('gen-result').style.display='block';
+    sSt('gen-status','✓ Documento listo — imprime, firma a mano y sube a la plataforma CAE','o');
+  }catch(err){sSt('gen-status','Error: '+err.message,'e');}
+}
+function imprimirDoc(){const w=window.open('','_blank');w.document.write(`<html><head><style>body{font-family:monospace;font-size:11px;padding:20mm;line-height:1.9;white-space:pre-wrap;color:#000}@media print{body{padding:15mm}}</style></head><body>${docGen.replace(/</g,'&lt;')}</body></html>`);w.document.close();setTimeout(()=>w.print(),300);}
+function descargarPDF(){
+  if(!jsPDF){alert('PDF no disponible');return;}
+  const doc=new jsPDF({unit:'mm',format:'a4'});doc.setFont('courier');doc.setFontSize(9);
+  const lines=doc.splitTextToSize(docGen,185);let y=18;
+  lines.forEach(l=>{if(y>282){doc.addPage();y=18;}doc.text(l,12,y);y+=4.5;});
+  const en=empresas[parseInt(document.getElementById('gen-emp').value)]?.nombre.replace(/\s/g,'_')||'doc';
+  const tn=DOC_TIPOS.find(x=>x.id===genTipo)?.label.replace(/\s/g,'_')||'CAE';
+  doc.save(`CAE_${en}_${tn}_${new Date().toISOString().slice(0,10)}.pdf`);
+}
+function abrirModalEmail(){
+  const ei=parseInt(document.getElementById('gen-emp').value);const e=isNaN(ei)?null:empresas[ei];
+  const tl=DOC_TIPOS.find(x=>x.id===genTipo)?.label||'Documento CAE';const fecha=new Date().toLocaleDateString('es-ES');
+  document.getElementById('em-to').value=e?.email||'';
+  document.getElementById('em-as').value=`Documentación CAE · ${tl} · ${e?.nombre||''} · ${fecha}`;
+  document.getElementById('em-body').value=`Estimados,\n\nAdjunto les enviamos el documento CAE:\n\nTipo: ${tl}\nEmpresa: ${e?.nombre||'—'}\nFecha: ${fecha}\n\nQuedamos a su disposición.\n\nAtentamente,`;
+  document.getElementById('em-st').innerHTML='';document.getElementById('modal-email').classList.add('open');
+}
+function copiarEmail(){const txt=`PARA: ${document.getElementById('em-to').value}\nASUNTO: ${document.getElementById('em-as').value}\n\n${document.getElementById('em-body').value}`;navigator.clipboard.writeText(txt).then(()=>{document.getElementById('em-st').innerHTML='<div class="smsg so">✓ Copiado — pégalo en tu cliente de correo</div>';}).catch(()=>prompt('Copia:',txt));}
+function irGenerar(idx){showPanel('generar',document.querySelectorAll('.nav-btn')[2]);setTimeout(()=>{document.getElementById('gen-emp').value=idx;onGenEmpChange();},50);}
+function irGenerarAlerta(empIdx,tipoId){
+  showPanel('generar',document.querySelectorAll('.nav-btn')[2]);
+  setTimeout(()=>{
+    document.getElementById('gen-emp').value=empIdx;
+    onGenEmpChange();
+    setTimeout(()=>{
+      const btn=document.querySelector(`.doc-type-btn:not(.no-tpl)`);
+      const btns=document.querySelectorAll('.doc-type-btn');
+      btns.forEach((b,i)=>{if(DOC_TIPOS[i]?.id===tipoId)b.click();});
+    },100);
+  },50);
+}
+document.getElementById('gen-fecha').value=new Date().toISOString().slice(0,10);
+</script>
+</body>
+</html>
