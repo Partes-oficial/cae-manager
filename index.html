@@ -179,6 +179,7 @@
       <button class="nav-btn active" onclick="showPanel('empresas',this)"><i class="ti ti-building-community"></i> Empresas</button>
       <button class="nav-btn" onclick="showPanel('alertas',this)" id="nav-alertas"><i class="ti ti-bell"></i> Alertas</button>
       <button class="nav-btn" onclick="showPanel('generar',this)"><i class="ti ti-file-plus"></i> Generar documento</button>
+      <button class="nav-btn" onclick="showPanel('papelera',this)" id="nav-papelera"><i class="ti ti-trash"></i> Papelera</button>
     </div>
     <div class="topbar-right">
       <div class="user-pill"><i class="ti ti-shield-check" style="font-size:12px;color:var(--green)"></i> Superadmin</div>
@@ -241,6 +242,12 @@
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- PANEL PAPELERA -->
+      <div id="panel-papelera" class="panel">
+        <div class="ph"><div><div class="ph-title">Papelera</div><div class="ph-sub">Empresas eliminadas — se borran definitivamente después de 3 días</div></div></div>
+        <div id="papelera-content"></div>
       </div>
 
     </div>
@@ -440,7 +447,7 @@ function doLogin(){
   if(document.getElementById('lu').value==='admin'&&document.getElementById('lp').value==='admin123'){
     document.getElementById('login-screen').style.display='none';
     const a=document.getElementById('app');a.style.display='flex';a.style.flexDirection='column';
-    renderSidebar();poblarGen();updateAlertBadge();
+    renderSidebar();poblarGen();updateAlertBadge();updatePapeleraBadge();checkCaducidadPapelera();
   }else document.getElementById('lerr').style.display='block';
 }
 function doLogout(){document.getElementById('app').style.display='none';document.getElementById('login-screen').style.display='flex';selIdx=null;}
@@ -453,6 +460,7 @@ function showPanel(id,btn){
   if(btn)btn.classList.add('active');
   if(id==='generar')poblarGen();
   if(id==='alertas')renderAlertas();
+  if(id==='papelera')renderPapelera();
 }
 
 // ─── SIDEBAR ─────────────────────────────────────────────
@@ -508,6 +516,7 @@ function renderEmpDetail(idx){
       <div style="display:flex;gap:8px">
         <button class="btn btn-sm" onclick="openModalEmp(${idx})"><i class="ti ti-edit"></i> Editar</button>
         <button class="btn btn-sm btn-primary" onclick="irGenerar(${idx})"><i class="ti ti-file-plus"></i> Generar doc</button>
+        <button class="btn btn-sm" style="color:var(--red);border-color:rgba(224,85,85,.3)" onclick="moverPapelera(${idx})"><i class="ti ti-trash"></i> Eliminar empresa</button>
       </div>
     </div>
     ${alertaHTML}
@@ -591,7 +600,20 @@ async function analizarTpl(e){
     document.getElementById('tpl-clista').innerHTML=tplC.map(c=>`<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)"><span style="font-size:12px;color:var(--text2);width:140px;flex-shrink:0">${c.etiqueta}</span><input type="text" value="${c.ejemplo||''}" data-id="${c.id}" placeholder="${c.etiqueta}" style="flex:1;padding:5px 9px;background:var(--bg3);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:var(--font);font-size:12px;outline:none"></div>`).join('');
     document.getElementById('tpl-campos').style.display='block';
     document.getElementById('tpl-status').innerHTML=`<div class="smsg so">✓ ${tplC.length} campos detectados</div>`;
-  }catch(err){document.getElementById('tpl-status').innerHTML=`<div class="smsg se">Error: ${err.message}</div>`;}
+  }catch(err){
+    let msg = 'Error desconocido al analizar el documento';
+    const e = err.message || '';
+    if(e.includes('fetch')||e.includes('network')||e.includes('Failed to fetch')) msg='Sin conexión — comprueba tu internet e inténtalo de nuevo';
+    else if(e.includes('JSON')||e.includes('parse')) msg='La IA no pudo interpretar el documento — prueba con otro formato (PDF o imagen clara)';
+    else if(e.includes('413')||e.includes('too large')) msg='El archivo es demasiado grande — comprime el PDF o usa una imagen';
+    else if(e.includes('401')||e.includes('403')) msg='Error de autenticación con la IA — recarga la página e inténtalo de nuevo';
+    else if(e.includes('429')) msg='Demasiadas peticiones seguidas — espera unos segundos e inténtalo de nuevo';
+    else if(e.includes('500')||e.includes('502')||e.includes('503')) msg='El servicio de IA no está disponible ahora mismo — inténtalo en unos minutos';
+    else if(e.includes('timeout')) msg='La conexión tardó demasiado — inténtalo de nuevo';
+    else if(e.includes('FileReader')||e.includes('read')) msg='No se pudo leer el archivo — asegúrate de que no está dañado';
+    document.getElementById('tpl-status').innerHTML=`<div class="smsg se"><i class="ti ti-alert-circle"></i> ${msg}</div>`;
+    logError('Analizar plantilla', msg, e);
+  }
 }
 function guardarTpl(){
   if(!tplC)return;
@@ -656,9 +678,62 @@ async function generarDoc(){
     docGen=text;document.getElementById('doc-preview').textContent=text;
     document.getElementById('gen-result').style.display='block';
     sSt('gen-status','✓ Documento listo — imprime, firma a mano y sube a la plataforma CAE','o');
-  }catch(err){sSt('gen-status','Error: '+err.message,'e');}
+  }catch(err){
+    let msg = 'Error desconocido al generar el documento';
+    const e = err.message || '';
+    if(e.includes('fetch')||e.includes('network')||e.includes('Failed to fetch')) msg='Sin conexión — comprueba tu internet e inténtalo de nuevo';
+    else if(e.includes('Sin respuesta')) msg='La IA no devolvió respuesta — inténtalo de nuevo';
+    else if(e.includes('401')||e.includes('403')) msg='Error de autenticación con la IA — recarga la página';
+    else if(e.includes('429')) msg='Demasiadas peticiones seguidas — espera unos segundos e inténtalo de nuevo';
+    else if(e.includes('500')||e.includes('502')||e.includes('503')) msg='El servicio de IA no está disponible ahora mismo — inténtalo en unos minutos';
+    else if(e.includes('timeout')) msg='La conexión tardó demasiado — inténtalo de nuevo';
+    sSt('gen-status','<i class="ti ti-alert-circle"></i> '+msg,'e');
+    logError('Generar documento', msg, e);
+  }
 }
-function imprimirDoc(){const w=window.open('','_blank');w.document.write(`<html><head><style>body{font-family:monospace;font-size:11px;padding:20mm;line-height:1.9;white-space:pre-wrap;color:#000}@media print{body{padding:15mm}}</style></head><body>${docGen.replace(/</g,'&lt;')}</body></html>`);w.document.close();setTimeout(()=>w.print(),300);}
+function imprimirDoc(){const w=window.open('','_blank');w.document.write(`<html><head><style>body{font-family:monospace;font-size:11px;padding:20mm;line-height:1.9;white-space:pre-wrap;color:#000}@media print{body{padding:15mm}}</style></head><body>${docGen.replace(/</g,'&lt;')}
+<!-- PANEL DE ERRORES -->
+<div id="error-log-panel" style="display:none;position:fixed;bottom:16px;right:16px;width:340px;background:#13161d;border:1px solid rgba(224,85,85,.5);border-radius:12px;padding:14px 16px;z-index:999;box-shadow:0 8px 32px rgba(0,0,0,.5)">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+    <div style="display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:#e05555;text-transform:uppercase;letter-spacing:.5px"><i class="ti ti-alert-circle"></i> Registro de errores</div>
+    <button onclick="document.getElementById('error-log-panel').style.display='none'" style="background:none;border:none;cursor:pointer;color:#555d75;font-size:18px;line-height:1">×</button>
+  </div>
+  <div id="error-log-list" style="max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:6px"></div>
+  <button onclick="document.getElementById('error-log-list').innerHTML='';document.getElementById('error-log-panel').style.display='none'" style="margin-top:10px;width:100%;padding:5px;background:rgba(224,85,85,.1);border:1px solid rgba(224,85,85,.3);border-radius:7px;color:#e05555;font-size:12px;cursor:pointer;font-family:var(--font)">Limpiar errores</button>
+</div>
+
+<script>
+
+// ─── SISTEMA DE ERRORES ───────────────────────────────────
+function logError(lugar, descripcion, detalle){
+  const panel = document.getElementById('error-log-panel');
+  const lista = document.getElementById('error-log-list');
+  const hora = new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const item = document.createElement('div');
+  item.style.cssText='background:rgba(224,85,85,.08);border:1px solid rgba(224,85,85,.2);border-radius:7px;padding:8px 10px;font-size:12px';
+  item.innerHTML=`<div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="font-weight:600;color:#e05555">${lugar}</span><span style="color:#555d75;font-family:var(--mono)">${hora}</span></div><div style="color:#e8eaf0;margin-bottom:2px">${descripcion}</div>${detalle?'<div style="color:#555d75;font-size:11px;font-family:var(--mono);word-break:break-all">'+detalle+'</div>':''}`;
+  lista.prepend(item);
+  panel.style.display='block';
+}
+
+// Capturar errores globales no controlados
+window.addEventListener('unhandledrejection', function(e){
+  const msg = e.reason?.message || String(e.reason) || 'Error no controlado';
+  let desc = 'Error inesperado en la aplicación';
+  if(msg.includes('fetch')||msg.includes('network')) desc='Fallo de conexión con el servidor';
+  else if(msg.includes('JSON')) desc='Error al procesar la respuesta del servidor';
+  else if(msg.includes('localStorage')) desc='Error al guardar datos localmente — almacenamiento lleno';
+  logError('Sistema', desc, msg);
+});
+
+window.addEventListener('error', function(e){
+  if(e.message && !e.message.includes('Script error')){
+    logError('Aplicación', 'Error en la interfaz — recarga la página si algo no funciona', e.message);
+  }
+});
+
+</script>
+</body></html>`);w.document.close();setTimeout(()=>w.print(),300);}
 function descargarPDF(){
   if(!jsPDF){alert('PDF no disponible');return;}
   const doc=new jsPDF({unit:'mm',format:'a4'});doc.setFont('courier');doc.setFontSize(9);
@@ -691,6 +766,152 @@ function irGenerarAlerta(empIdx,tipoId){
   },50);
 }
 document.getElementById('gen-fecha').value=new Date().toISOString().slice(0,10);
+</script>
+
+<!-- PANEL DE ERRORES -->
+<div id="error-log-panel" style="display:none;position:fixed;bottom:16px;right:16px;width:340px;background:#13161d;border:1px solid rgba(224,85,85,.5);border-radius:12px;padding:14px 16px;z-index:999;box-shadow:0 8px 32px rgba(0,0,0,.5)">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+    <div style="display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:#e05555;text-transform:uppercase;letter-spacing:.5px"><i class="ti ti-alert-circle"></i> Registro de errores</div>
+    <button onclick="document.getElementById('error-log-panel').style.display='none'" style="background:none;border:none;cursor:pointer;color:#555d75;font-size:18px;line-height:1">×</button>
+  </div>
+  <div id="error-log-list" style="max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:6px"></div>
+  <button onclick="document.getElementById('error-log-list').innerHTML='';document.getElementById('error-log-panel').style.display='none'" style="margin-top:10px;width:100%;padding:5px;background:rgba(224,85,85,.1);border:1px solid rgba(224,85,85,.3);border-radius:7px;color:#e05555;font-size:12px;cursor:pointer;font-family:var(--font)">Limpiar errores</button>
+</div>
+
+<script>
+
+// ─── SISTEMA DE ERRORES ───────────────────────────────────
+function logError(lugar, descripcion, detalle){
+  const panel = document.getElementById('error-log-panel');
+  const lista = document.getElementById('error-log-list');
+  const hora = new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const item = document.createElement('div');
+  item.style.cssText='background:rgba(224,85,85,.08);border:1px solid rgba(224,85,85,.2);border-radius:7px;padding:8px 10px;font-size:12px';
+  item.innerHTML=`<div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="font-weight:600;color:#e05555">${lugar}</span><span style="color:#555d75;font-family:var(--mono)">${hora}</span></div><div style="color:#e8eaf0;margin-bottom:2px">${descripcion}</div>${detalle?'<div style="color:#555d75;font-size:11px;font-family:var(--mono);word-break:break-all">'+detalle+'</div>':''}`;
+  lista.prepend(item);
+  panel.style.display='block';
+}
+
+// Capturar errores globales no controlados
+window.addEventListener('unhandledrejection', function(e){
+  const msg = e.reason?.message || String(e.reason) || 'Error no controlado';
+  let desc = 'Error inesperado en la aplicación';
+  if(msg.includes('fetch')||msg.includes('network')) desc='Fallo de conexión con el servidor';
+  else if(msg.includes('JSON')) desc='Error al procesar la respuesta del servidor';
+  else if(msg.includes('localStorage')) desc='Error al guardar datos localmente — almacenamiento lleno';
+  logError('Sistema', desc, msg);
+});
+
+window.addEventListener('error', function(e){
+  if(e.message && !e.message.includes('Script error')){
+    logError('Aplicación', 'Error en la interfaz — recarga la página si algo no funciona', e.message);
+  }
+});
+
+
+// ─── PAPELERA ─────────────────────────────────────────────
+let papelera = JSON.parse(localStorage.getItem('cae5_papelera') || '[]');
+function savePapelera(){ localStorage.setItem('cae5_papelera', JSON.stringify(papelera)); }
+
+function moverPapelera(idx){
+  const e = empresas[idx];
+  const conf = confirm('¿Mover "' + e.nombre + '" a la papelera?\n\nPodrás recuperarla durante 3 días. Después te preguntaremos si quieres eliminarla definitivamente.');
+  if(!conf) return;
+  papelera.push({ ...e, _deletedAt: Date.now() });
+  savePapelera();
+  empresas.splice(idx, 1);
+  save();
+  selIdx = null;
+  document.getElementById('emp-main').innerHTML = '<div class="no-sel"><i class="ti ti-building-community"></i><p>Selecciona una empresa</p><span>Elige del panel izquierdo para ver su detalle</span></div>';
+  renderSidebar();
+  poblarGen();
+  updateAlertBadge();
+  updatePapeleraBadge();
+}
+
+function recuperarEmpresa(pi){
+  const e = papelera[pi];
+  delete e._deletedAt;
+  empresas.push(e);
+  papelera.splice(pi, 1);
+  save();
+  savePapelera();
+  renderSidebar();
+  poblarGen();
+  updateAlertBadge();
+  updatePapeleraBadge();
+  renderPapelera();
+  selEmp(empresas.length - 1);
+}
+
+function eliminarDefinitivo(pi){
+  const e = papelera[pi];
+  const conf = confirm('¿Eliminar definitivamente "' + e.nombre + '"?\n\nEsta acción NO se puede deshacer. Todos sus datos, trabajadores y plantillas se perderán para siempre.');
+  if(!conf) return;
+  papelera.splice(pi, 1);
+  savePapelera();
+  updatePapeleraBadge();
+  renderPapelera();
+}
+
+function updatePapeleraBadge(){
+  const nb = document.getElementById('nav-papelera');
+  const existing = nb.querySelector('.alert-badge');
+  if(existing) existing.remove();
+  if(papelera.length > 0) nb.insertAdjacentHTML('beforeend', '<span class="alert-badge" style="background:var(--text3)">' + papelera.length + '</span>');
+}
+
+function checkCaducidadPapelera(){
+  const TRES_DIAS = 3 * 24 * 60 * 60 * 1000;
+  papelera.forEach((e, pi) => {
+    const elapsed = Date.now() - e._deletedAt;
+    if(elapsed >= TRES_DIAS){
+      const conf = confirm('Han pasado 3 días desde que eliminaste "' + e.nombre + '".\n\n¿Quieres eliminarla definitivamente? Si cancelas, tendrá 1 día más antes de volver a preguntar.');
+      if(conf){
+        papelera.splice(pi, 1);
+        savePapelera();
+        updatePapeleraBadge();
+      } else {
+        // Reset timer giving 1 more day
+        papelera[pi]._deletedAt = Date.now() - TRES_DIAS + (24 * 60 * 60 * 1000);
+        savePapelera();
+      }
+    }
+  });
+}
+
+function renderPapelera(){
+  const el = document.getElementById('papelera-content');
+  if(!el) return;
+  if(!papelera.length){
+    el.innerHTML = '<div style="text-align:center;padding:48px;color:var(--text3)"><i class="ti ti-trash-off" style="font-size:44px;display:block;margin-bottom:12px"></i><p style="font-size:15px;color:var(--text2)">Papelera vacía</p><span style="font-size:13px">Las empresas eliminadas aparecerán aquí durante 3 días</span></div>';
+    return;
+  }
+  const TRES_DIAS = 3 * 24 * 60 * 60 * 1000;
+  el.innerHTML = papelera.map((e, pi) => {
+    const elapsed = Date.now() - e._deletedAt;
+    const remaining = TRES_DIAS - elapsed;
+    const dias = Math.max(0, Math.ceil(remaining / (1000 * 60 * 60 * 24)));
+    const horas = Math.max(0, Math.ceil(remaining / (1000 * 60 * 60)));
+    const tiempoLabel = dias > 1 ? dias + ' días restantes' : dias === 1 ? 'Menos de 1 día' : horas > 0 ? horas + ' horas restantes' : 'Expira pronto';
+    const urgente = dias === 0;
+    return \`<div class="card" style="display:flex;align-items:center;gap:14px;border-color:\${urgente?'rgba(224,85,85,.4)':'var(--border)'}">
+      <div style="width:44px;height:44px;border-radius:10px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13px;color:var(--text3);font-family:var(--mono);flex-shrink:0">\${gi(e.nombre)}</div>
+      <div style="flex:1">
+        <div style="font-weight:600;font-size:15px;color:var(--text2)">\${e.nombre}</div>
+        <div style="font-size:12px;color:var(--text3);font-family:var(--mono)">\${e.cif||'—'} · \${(e.trabajadores||[]).length} trabajadores</div>
+        <div style="font-size:11px;margin-top:4px;color:\${urgente?'var(--red)':'var(--amber)'};font-weight:500"><i class="ti ti-clock" style="font-size:11px"></i> \${tiempoLabel}</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-sm btn-success" onclick="recuperarEmpresa(\${pi})"><i class="ti ti-refresh"></i> Recuperar</button>
+        <button class="btn btn-sm" style="color:var(--red);border-color:rgba(224,85,85,.3)" onclick="eliminarDefinitivo(\${pi})"><i class="ti ti-trash-x"></i> Eliminar ya</button>
+      </div>
+    </div>\`;
+  }).join('');
+}
+// Comprobar papelera al cargar
+setTimeout(checkCaducidadPapelera, 1500);
+
 </script>
 </body>
 </html>
