@@ -637,7 +637,7 @@ async function analizarTpl(e){
     else{const txt=await file.text();messages=[{role:'user',content:'Documento "'+t.label+'" CAE:\n\n'+txt.slice(0,3000)+'\n\n'+prompt}];}
     const apiKey=getApiKey();
     if(!apiKey){throw new Error('No hay API Key configurada');}
-    const geminiUrl='https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key='+apiKey;
+    const geminiUrl='https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key='+apiKey;
     // Build Gemini parts from messages
     const msg=messages[0];
     const parts=[];
@@ -726,7 +726,7 @@ async function generarDoc(){
   try{
     const apiKey=getApiKey();
     if(!apiKey){throw new Error('No hay API Key configurada');}
-    const geminiUrl='https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key='+apiKey;
+    const geminiUrl='https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key='+apiKey;
     const res=await fetch(geminiUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{role:'user',parts:[{text:prompt}]}]})});
     const data=await res.json();
     const text=data.candidates&&data.candidates[0]&&data.candidates[0].content&&data.candidates[0].content.parts&&data.candidates[0].content.parts[0].text||'';
