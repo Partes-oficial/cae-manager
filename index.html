@@ -638,10 +638,24 @@ async function analizarTpl(e){
     const apiKey=getApiKey();
     if(!apiKey){throw new Error('No hay API Key configurada');}
     const geminiUrl='https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key='+apiKey;
-    const geminiBody={contents:messages.map(m=>({role:m.role==='assistant'?'model':'user',parts:Array.isArray(m.content)?m.content.map(c=>c.type==='text'?{text:c.text}:c.type==='image'?{inline_data:{mime_type:c.source.media_type,data:c.source.data}}:{inline_data:{mime_type:c.source.media_type,data:c.source.data}}):[{text:m.content}]}))};
+    // Build Gemini parts from messages
+    const msg=messages[0];
+    const parts=[];
+    if(Array.isArray(msg.content)){
+      msg.content.forEach(c=>{
+        if(c.type==='text')parts.push({text:c.text});
+        else if(c.type==='image')parts.push({inline_data:{mime_type:c.source.media_type,data:c.source.data}});
+        else if(c.type==='document')parts.push({inline_data:{mime_type:c.source.media_type,data:c.source.data}});
+      });
+    }else{
+      parts.push({text:msg.content});
+    }
+    const geminiBody={contents:[{parts}]};
     const res=await fetch(geminiUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(geminiBody)});
     const data=await res.json();
-    const raw=data.candidates&&data.candidates[0]&&data.candidates[0].content&&data.candidates[0].content.parts&&data.candidates[0].content.parts[0].text||'';
+    if(data.error)throw new Error(data.error.message||'Error de Gemini');
+    const raw=data.candidates&&data.candidates[0]&&data.candidates[0].content&&data.candidates[0].content.parts&&data.candidates[0].content.parts[0]&&data.candidates[0].content.parts[0].text||'';
+    if(!raw)throw new Error('Gemini no devolvió respuesta — intenta con una imagen en vez de Word');
     const rawClean=raw.replace(/```json|```/g,'').trim();
     const parsed=JSON.parse(rawClean);tplC=parsed.campos;
     document.getElementById('tpl-clista').innerHTML=tplC.map(c=>'<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)"><span style="font-size:12px;color:var(--text2);width:140px;flex-shrink:0">'+c.etiqueta+'</span><input type="text" value="'+(c.ejemplo||'')+'" data-id="'+c.id+'" placeholder="'+c.etiqueta+'" style="flex:1;padding:5px 9px;background:var(--bg3);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:var(--font);font-size:12px;outline:none"></div>').join('');
