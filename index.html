@@ -143,6 +143,12 @@
     <div id="lerr" class="lerr">Usuario o contraseña incorrectos</div>
     <div class="field"><label>Usuario</label><input type="text" id="lu" value="admin"></div>
     <div class="field"><label>Contraseña</label><input type="password" id="lp" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <div style="height:1px;background:var(--border);margin:16px 0"></div>
+    <div class="field">
+      <label>API Key de Anthropic</label>
+      <input type="password" id="api-key-input" placeholder="sk-ant-api03-..." style="font-family:var(--mono);font-size:12px">
+      <p style="font-size:11px;color:var(--text3);margin-top:5px">Necesaria para generar documentos con IA. Consíguela en <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--accent)">console.anthropic.com</a></p>
+    </div>
     <button class="btn btn-primary btn-full" style="margin-top:4px" onclick="doLogin()"><i class="ti ti-login"></i> Entrar</button>
     <p style="font-size:11px;color:var(--text3);text-align:center;margin-top:14px">Usuario: admin / Contraseña: admin123</p>
   </div>
@@ -160,6 +166,7 @@
     </div>
     <div class="topbar-right">
       <div class="user-pill"><i class="ti ti-shield-check" style="font-size:12px;color:var(--green)"></i> Superadmin</div>
+      <button class="btn btn-sm" onclick="abrirConfigApiKey()" title="Configurar API Key"><i class="ti ti-key"></i></button>
       <button class="btn btn-sm" onclick="doLogout()"><i class="ti ti-logout"></i></button>
     </div>
   </div>
@@ -295,6 +302,27 @@
   </div>
 </div>
 
+<!-- MODAL API KEY -->
+<div class="overlay" id="modal-apikey">
+  <div class="modal" style="width:460px">
+    <div class="mhdr"><div class="mtitle"><i class="ti ti-key" style="color:var(--accent)"></i> API Key de Anthropic</div><button class="mclose" onclick="closeOv('modal-apikey')">x</button></div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:16px">La API Key es necesaria para que la IA pueda analizar plantillas y generar documentos. Se guarda solo en tu navegador.</p>
+    <div class="field">
+      <label>API Key</label>
+      <input type="password" id="cfg-apikey" placeholder="sk-ant-api03-..." style="font-family:var(--mono);font-size:12px">
+    </div>
+    <div id="apikey-status"></div>
+    <p style="font-size:12px;color:var(--text3);margin-top:8px">
+      ¿No tienes una? Créala gratis en 
+      <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--accent)">console.anthropic.com</a>
+    </p>
+    <div class="mfooter">
+      <button class="btn" onclick="closeOv('modal-apikey')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarApiKey()"><i class="ti ti-device-floppy"></i> Guardar API Key</button>
+    </div>
+  </div>
+</div>
+
 <!-- PANEL ERRORES -->
 <div class="err-panel" id="err-panel">
   <div class="err-panel-hdr">
@@ -369,11 +397,22 @@ window.addEventListener('unhandledrejection',function(e){
 // ── AUTH ───────────────────────────────────────────────────
 function doLogin(){
   if(document.getElementById('lu').value==='admin'&&document.getElementById('lp').value==='admin123'){
+    const apiKey=document.getElementById('api-key-input').value.trim();
+    if(apiKey&&apiKey.startsWith('sk-')){
+      localStorage.setItem('cae_apikey',apiKey);
+    }
     document.getElementById('login-screen').style.display='none';
     const a=document.getElementById('app');a.style.display='flex';a.style.flexDirection='column';
     renderSidebar();poblarGen();updateBadges();checkPapelera();
+    // Show warning if no API key
+    if(!getApiKey()){
+      setTimeout(()=>{
+        logError('API Key','No has introducido una API Key — las funciones de IA no funcionarán. Cierra sesión y añádela.','Ve a console.anthropic.com para obtenerla');
+      },1000);
+    }
   }else{document.getElementById('lerr').style.display='block';}
 }
+function getApiKey(){return localStorage.getItem('cae_apikey')||'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';}
 function doLogout(){document.getElementById('app').style.display='none';document.getElementById('login-screen').style.display='flex';selIdx=null;}
 
 // ── NAV ────────────────────────────────────────────────────
@@ -596,7 +635,9 @@ async function analizarTpl(e){
     const prompt='Analiza este documento "'+t.label+'" CAE de construcción. Lista todos los campos a rellenar (nombre, DNI, fecha, empresa, maquinaria, EPIs, obra, etc.). Responde SOLO con JSON sin markdown:\n{"campos":[{"id":"campo_id","etiqueta":"Etiqueta visible","ejemplo":"valor ejemplo"}]}';
     if(isImg||isPDF){const b64=await toB64(file);const blk=isPDF?{type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}}:{type:'image',source:{type:'base64',media_type:file.type,data:b64}};messages=[{role:'user',content:[blk,{type:'text',text:prompt}]}];}
     else{const txt=await file.text();messages=[{role:'user',content:'Documento "'+t.label+'" CAE:\n\n'+txt.slice(0,3000)+'\n\n'+prompt}];}
-    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages})});
+    const apiKey=getApiKey();
+    if(!apiKey){throw new Error('No hay API Key configurada — cierra sesión, añade tu API Key y vuelve a entrar');}
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages})});
     const data=await res.json();
     const raw=data.content&&data.content.map(b=>b.text||'').join('').replace(/```json|```/g,'').trim();
     const parsed=JSON.parse(raw);tplC=parsed.campos;
@@ -666,7 +707,9 @@ async function generarDoc(){
   const pMap={epis:'ENTREGA DE EQUIPOS DE PROTECCIÓN INDIVIDUAL (EPIS)',autmaq:'AUTORIZACIÓN DE USO DE MAQUINARIA',informacion:'INFORMACIÓN DE RIESGOS LABORALES Y MEDIDAS PREVENTIVAS'};
   const prompt='Eres experto en documentación CAE para construcción en España. Genera el documento formal "'+pMap[genTipo]+'" con estos datos:\n\nEmpresa: '+e.nombre+' — CIF: '+(e.cif||'—')+' — '+(e.dir||'')+'\nFecha: '+fechaFmt+'\nObra/Proyecto: '+(obra||'—')+'\nTrabajadores:\n'+wStr+cStr+'\n\nINSTRUCCIONES:\n- Documento COMPLETO y FORMAL listo para imprimir y firmar\n- Todos los apartados habituales en obras de construcción en España\n- Líneas separadoras para estructurar\n- Al final: líneas de firma para TRABAJADOR y RESPONSABLE con fecha y DNI\n- Solo el documento, sin notas externas';
   try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
+    const apiKey=getApiKey();
+    if(!apiKey){throw new Error('No hay API Key configurada — cierra sesión, añade tu API Key y vuelve a entrar');}
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
     const data=await res.json();
     const text=data.content&&data.content.map(b=>b.text||'').join('');
     if(!text)throw new Error('Sin respuesta');
@@ -711,7 +754,27 @@ function irGenerarAlerta(empIdx,tipoId){
     setTimeout(()=>{document.querySelectorAll('.doc-type-btn').forEach((b,i)=>{if(DOC_TIPOS[i]&&DOC_TIPOS[i].id===tipoId)b.click();});},150);
   },50);
 }
+// ── API KEY ──────────────────────────────────────────────
+function abrirConfigApiKey(){
+  const k=getApiKey();
+  document.getElementById('cfg-apikey').value=k||'';
+  document.getElementById('apikey-status').innerHTML=k?'<div class="smsg so"><i class="ti ti-check"></i> API Key configurada y activa</div>':'<div class="smsg se"><i class="ti ti-alert-circle"></i> Sin API Key — las funciones de IA no funcionarán</div>';
+  document.getElementById('modal-apikey').classList.add('open');
+}
+function guardarApiKey(){
+  const k=document.getElementById('cfg-apikey').value.trim();
+  if(!k){alert('Introduce tu API Key');return;}
+  if(!k.startsWith('sk-')){alert('La API Key debe empezar por sk-');return;}
+  localStorage.setItem('cae_apikey',k);
+  document.getElementById('apikey-status').innerHTML='<div class="smsg so"><i class="ti ti-check"></i> API Key guardada correctamente</div>';
+  setTimeout(()=>closeOv('modal-apikey'),1200);
+}
 document.getElementById('gen-fecha').value=new Date().toISOString().slice(0,10);
+// Pre-fill API key if already saved
+const savedKey=localStorage.getItem('cae_apikey');
+if(savedKey&&document.getElementById('api-key-input')){
+  document.getElementById('api-key-input').value=savedKey;
+}
 setTimeout(checkPapelera,1500);
 </script>
 </body>
